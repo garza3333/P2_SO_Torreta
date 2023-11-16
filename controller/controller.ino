@@ -1,7 +1,7 @@
 #include <Servo.h>
 #include <NewPing.h>
-#define TRIGGER_PIN 11
-#define ECHO_PIN 12
+#define TRIGGER_PIN 5
+#define ECHO_PIN 6
 #define LASER_PIN 13
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN);
@@ -38,10 +38,12 @@ void rotateY(){
 }
 
 void shoot(){ 
-Serial.println("shoot");
+
+  Serial.println("shoot");
   digitalWrite(LASER_PIN,HIGH);
-  delay(150);
+  delay(1000);
   digitalWrite(LASER_PIN,LOW);
+  delay(1000);
 }
 
 void handleCommand(char command) {
@@ -83,13 +85,16 @@ void loop() {
   }
 
 
-  rutine1_normal();
+  //rutine1_normal();
 
 
-  //rotateX();
-  //rotateY();
+  rotateX();
+  rotateY();
+
+  shoot();
 
   printDistance();
+
   // Serial.println("x:");        
   // Serial.print(valX);
 
@@ -115,9 +120,9 @@ void printDistance() {
   distance = duration * 0.034 / 2; // La velocidad del sonido en el aire es de aproximadamente 0.034 cm/microsegundo
 
   // Mostrar la distancia en el puerto serie
-  Serial.print("Distancia: ");
+  Serial.print("Distancia:");
   Serial.print(distance);
-  Serial.println(" cm");
+  Serial.println("");
 
   //delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
 }
