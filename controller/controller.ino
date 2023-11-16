@@ -1,23 +1,18 @@
 #include <arduinoFFT.h>
 #include <Servo.h>
-#include <NewPing.h>
-#define TRIGGER_PIN 5
-#define ECHO_PIN 6
+#define SERVO_Y 10
+#define SERVO_X 9
 #define LASER_PIN 8
+#define ECHO_PIN 7
+#define TRIGGER_PIN 6
+#define SOUND_EFFECT_PIN 4
 #define SAMPLES 1024  // Número de muestras para la FFT
 #define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
 arduinoFFT FFT;
-
-
-
-NewPing sonar(TRIGGER_PIN, ECHO_PIN);
 Servo xServo;  // create servo object to control a servo
 Servo yServo;  // create servo object to control a servo
-
 int xAxisPot = A0; // servo 1
-
 int yAxisPot = A1; // servo 2
-
 int valX; 
 int valY; 
 
@@ -27,22 +22,23 @@ int left_right_limit = 10;
 
 float speedX=5;
 float speedX2=10;
+float moveDelay=100;
+
+int audioRecordIndex;
 
 void setup() {
     Serial.begin(9600);
-    xServo.attach(9);  
-    yServo.attach(10);  
+    xServo.attach(SERVO_X);  
+    yServo.attach(SERVO_Y);  
     resetServo();
-
 }
-
 
 void loop() {
 
   double vReal[SAMPLES]; // Variables para el uso del micro
   double vImag[SAMPLES];
 
-  recordAudio(vReal);
+  //recordAudio(vReal);
 
   
   if (Serial.available() > 0) {
@@ -53,37 +49,14 @@ void loop() {
   
 
   //rutine1_normal();
-
-
-  rotateX();
-  rotateY();
-
-  shoot();
+  //shoot();
 
   printDistance();
 
-  // Serial.println("x:");        
-  // Serial.print(valX);
-
-  // delay(100);
 }
 
 
-void rotateX(){
-  xServo.write(valX);                 
-}
-void rotateY(){
-  yServo.write(valY);                 
-}
 
-void shoot(){ 
-
-  Serial.println("shoot");
-  digitalWrite(LASER_PIN,HIGH);
-  delay(1000);
-  digitalWrite(LASER_PIN,LOW);
-  delay(1000);
-}
 
 void handleCommand(char command) {
   switch (command) {
@@ -108,6 +81,7 @@ void handleCommand(char command) {
 
   }
 }
+
 void resetServo(){
   valX=100;
   rotateX();
@@ -116,7 +90,15 @@ void resetServo(){
   rotateY();
 }
 
+void shoot(){ 
 
+  Serial.println("shoot");
+  digitalWrite(LASER_PIN,HIGH);
+  shootSoundEffect();
+  delay(1000);
+  digitalWrite(LASER_PIN,LOW);
+  delay(1000);
+}
 
 void printDistance() {
   long duration;
@@ -143,52 +125,49 @@ void printDistance() {
   //delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
 }
 
-//int front_limit = 11;
-//int back_limit = 8;
-//int left_right_limit = 10;
-// <>
+
 void rutine1_normal(){
 
     // mitad delantera
     for(int i = 0; i<front_limit; i++){
       valX += speedX;
       rotateX();
-      delay(100);
+      delay(moveDelay);
     }
 
     // derecha
     for(int i = 0; i<left_right_limit; i++){
       valY += speedX2;
       rotateY();
-      delay(100);
+      delay(moveDelay);
     }
 
     // centro
     for(int i = 0; i<left_right_limit; i++){
       valY -= speedX2;
       rotateY();
-      delay(100);
+      delay(moveDelay);
     }
 
     // izquierda
     for(int i = 0; i<left_right_limit; i++){
       valY -= speedX2;
       rotateY();
-      delay(100);
+      delay(moveDelay);
     }
 
     // centro
     for(int i = 0; i<left_right_limit; i++){
       valY += speedX2;
       rotateY();
-      delay(100);
+      delay(moveDelay);
     }
 
     // atras centro
     for(int i = 0; i<front_limit; i++){
       valX -= speedX;
       rotateX();
-      delay(100);
+      delay(moveDelay);
     }
 
     // atras atras
@@ -239,27 +218,53 @@ void rutine1_normal(){
 }
 
 
-
 void recordAudio(double* vReal) {
-  for (int i = 0; i < SAMPLES; i++) {
-    vReal[i] = analogRead(A0);
-    delayMicroseconds(1000 / SAMPLING_FREQUENCY);  // Ajusta según la frecuencia de muestreo
-  }
+  
+    vReal[audioRecordIndex] = analogRead(A0);
+    audioRecordIndex+=1;
+    if(audioRecordIndex>= SAMPLES)
+    {
+      audioRecordIndex=0;
+    }
+  
 }
 
-/*
 
-valX = analogRead(xAxisPot);           
-valX = map(valX, 0, 1023, 0, 180);    
-valY = analogRead(yAxisPot);           
-valY = map(valY, 0, 1023, 0, 180);    
-xServo.write(valX);                 
-yServo.write(valY);
 
-Serial.print("x:");        
-Serial.print(valX);
-Serial.print(",");      
-Serial.print("y:");        
-Serial.print(valY);
-Serial.println();
-*/
+void shootSoundEffect(){
+  playTone(1000, 30);  // Frecuencia de 1000 Hz durante 30 ms
+  playTone(1500, 20);  // Frecuencia de 1500 Hz durante 20 ms
+  playTone(2000, 10);  // Frecuencia de 2000 Hz durante 10 ms
+}
+void moveSoundEffect(){
+
+  // playTone(2000, 1);  // Frecuencia de 2000 Hz durante 10 ms
+}
+void alertSoundEffect(){
+  playTone(1000, 30);  // Frecuencia de 1000 Hz durante 30 ms
+  playTone(1500, 20);  // Frecuencia de 1500 Hz durante 20 ms
+  playTone(2000, 10);  // Frecuencia de 2000 Hz durante 10 ms
+}
+
+void playTone(int frequency, int duration) {
+  tone(SOUND_EFFECT_PIN, frequency, duration);
+  unsigned long startTime = millis();
+  while (millis() - startTime < duration) {
+    // Esperar hasta que la duración del tono haya transcurrido
+  }
+  noTone(SOUND_EFFECT_PIN);
+}
+
+
+
+void rotateX(){
+  xServo.write(valX);  
+  moveSoundEffect();               
+}
+void rotateY(){
+  yServo.write(valY);                 
+  moveSoundEffect();
+}
+
+
+
