@@ -1,8 +1,14 @@
+#include <arduinoFFT.h>
 #include <Servo.h>
 #include <NewPing.h>
 #define TRIGGER_PIN 5
 #define ECHO_PIN 6
-#define LASER_PIN 13
+#define LASER_PIN 8
+#define SAMPLES 1024  // Número de muestras para la FFT
+#define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
+arduinoFFT FFT;
+
+
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN);
 Servo xServo;  // create servo object to control a servo
@@ -29,6 +35,39 @@ void setup() {
     resetServo();
 
 }
+
+
+void loop() {
+
+  double vReal[SAMPLES]; // Variables para el uso del micro
+  double vImag[SAMPLES];
+
+  recordAudio(vReal);
+
+  
+  if (Serial.available() > 0) {
+    char command = Serial.read();
+    handleCommand(command);
+  }
+
+  
+
+  //rutine1_normal();
+
+
+  rotateX();
+  rotateY();
+
+  shoot();
+
+  printDistance();
+
+  // Serial.println("x:");        
+  // Serial.print(valX);
+
+  // delay(100);
+}
+
 
 void rotateX(){
   xServo.write(valX);                 
@@ -77,29 +116,6 @@ void resetServo(){
   rotateY();
 }
 
-void loop() {
-
-  if (Serial.available() > 0) {
-    char command = Serial.read();
-    handleCommand(command);
-  }
-
-
-  //rutine1_normal();
-
-
-  rotateX();
-  rotateY();
-
-  shoot();
-
-  printDistance();
-
-  // Serial.println("x:");        
-  // Serial.print(valX);
-
-  // delay(100);
-}
 
 
 void printDistance() {
@@ -220,6 +236,15 @@ void rutine1_normal(){
     }
 
 
+}
+
+
+
+void recordAudio(double* vReal) {
+  for (int i = 0; i < SAMPLES; i++) {
+    vReal[i] = analogRead(A0);
+    delayMicroseconds(1000 / SAMPLING_FREQUENCY);  // Ajusta según la frecuencia de muestreo
+  }
 }
 
 /*
