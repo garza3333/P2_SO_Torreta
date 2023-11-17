@@ -18,6 +18,10 @@ int front_limit = 11; // maxima cantidad de giros de servomotor 1 hacia adelante
 int back_limit = 8; // maxima cantidad de giros de servomotor 1 hacia atras
 int left_right_limit = 10; // maxima cantidad de giros del servomotor 2 hacia izquierda y derecha
 
+// eccrypt key
+
+const int encrypt_key = 4;
+
 void protectBees();
 void warden();
 void shoot();
@@ -199,6 +203,25 @@ void rotateY(int degrees){
     //usleep(500);
 }
 
+
+// Función para cifrar un mensaje utilizando el cifrado César
+void cifrarMensaje(char *mensaje, int desplazamiento) {
+  while (*mensaje) {
+    char caracter = *mensaje;
+
+    if (isAlpha(caracter)) {
+      char nuevoCaracter = (((tolower(caracter) - 'a' + desplazamiento) % 26) + 26) % 26 + 'a';
+      *mensaje = isupper(caracter) ? toupper(nuevoCaracter) : nuevoCaracter;
+    }
+    mensaje++;
+  }
+}
+
+// Función para descifrar un mensaje utilizando el cifrado César
+void descifrarMensaje(char *mensajeCifrado, int desplazamiento) {
+  cifrarMensaje(mensajeCifrado, -desplazamiento);
+}
+
 void sendMessage(char* message, int length){
     const char *devicePath = "/dev/ttyUSB0"; // Ajusta el nombre del dispositivo según tu configuración
     int fd = open(devicePath, O_WRONLY); // Abre el dispositivo en modo escritura
@@ -213,6 +236,9 @@ void sendMessage(char* message, int length){
     // Crear un nuevo mensaje que incluya '\n' al final
     char mensaje_con_salto_de_linea[mensaje_len + 2]; 
     snprintf(mensaje_con_salto_de_linea, sizeof(mensaje_con_salto_de_linea), "%s\n", message);
+
+    // encrypt data
+    cifrarMensaje(mensaje_con_salto_de_linea, encrypt_key);
 
     write(fd, mensaje_con_salto_de_linea, strlen(mensaje_con_salto_de_linea)); // Escribe el mensaje en el puerto serie
     close(fd); // Cierra el puerto serie
