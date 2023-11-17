@@ -6,6 +6,7 @@
 #include <termios.h>
 #include <fftw3.h>
 #include <mpi.h>
+#include <ctype.h>
 
 #define SERIAL_PORT "/dev/ttyUSB0"
 
@@ -19,7 +20,6 @@ int back_limit = 8; // maxima cantidad de giros de servomotor 1 hacia atras
 int left_right_limit = 10; // maxima cantidad de giros del servomotor 2 hacia izquierda y derecha
 
 // eccrypt key
-
 const int encrypt_key = 4;
 
 void protectBees();
@@ -49,8 +49,9 @@ int main(int argc, char** argv){
 }
 
 void protectBees(){
-    //sendMessage("rotateX:10", 10);
+
     char* data = getSensorData();
+    printf(data);
     int distance = atoi(strstr(data,"dist:") + strlen("dist:"));
     char* frequency = strstr(data,"micropData:") + strlen("micropData:");
     if(distance <= TARGET_DISTANCE){
@@ -193,23 +194,20 @@ void rotateX(int degrees){
     char message[20];
     snprintf(message, sizeof(message), "rotateX:%d", degrees);
     sendMessage(message, strlen(message));
-    //usleep(500);
 }
 
 void rotateY(int degrees){
     char message[20];
     snprintf(message, sizeof(message), "rotateY:%d", degrees);
     sendMessage(message, strlen(message));
-    //usleep(500);
 }
-
 
 // Función para cifrar un mensaje utilizando el cifrado César
 void cifrarMensaje(char *mensaje, int desplazamiento) {
   while (*mensaje) {
     char caracter = *mensaje;
 
-    if (isAlpha(caracter)) {
+    if (isalpha(caracter)) {
       char nuevoCaracter = (((tolower(caracter) - 'a' + desplazamiento) % 26) + 26) % 26 + 'a';
       *mensaje = isupper(caracter) ? toupper(nuevoCaracter) : nuevoCaracter;
     }
@@ -221,6 +219,7 @@ void cifrarMensaje(char *mensaje, int desplazamiento) {
 void descifrarMensaje(char *mensajeCifrado, int desplazamiento) {
   cifrarMensaje(mensajeCifrado, -desplazamiento);
 }
+
 
 void sendMessage(char* message, int length){
     const char *devicePath = "/dev/ttyUSB0"; // Ajusta el nombre del dispositivo según tu configuración
