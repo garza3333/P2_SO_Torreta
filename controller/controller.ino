@@ -157,6 +157,14 @@ void handleCommand(char command, int val) {
       shoot();
       break;
 
+    case 'rotateX':
+      rotateX(val);
+      break
+
+    case 'rotateY':
+      rotateY(val);
+      break
+
   }
 }
 
@@ -242,15 +250,17 @@ void playTone(int frequency, int duration) {
 
 
 
-void rotateX(){
+void rotateX(float angle){
+  Serial.println("Rotate");
+  valX+=angle;
   xServo.write(valX);  
   moveSoundEffect();               
 }
-void rotateY(){
+void rotateY(float angle){
+  valY+=angle;
   yServo.write(valY);                 
   moveSoundEffect();
 }
-
 
 void splitCommand(const char *command, char *instruction, int &value) {
   // Copiar la cadena original a una variable temporal
