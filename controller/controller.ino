@@ -1,4 +1,5 @@
 #include <Servo.h>
+
 #define SERVO_Y 10
 #define SERVO_X 9
 #define LASER_PIN 8
@@ -49,6 +50,10 @@ bool inaction = false;  // flag de control de accion de la torreta
 double vReal[SAMPLES]; // Variables para el uso del micro
 double vImag[SAMPLES]; // 
 
+//  decrypting key
+const int decypt_key = 4;
+
+
 void setup() {
 
     Serial.begin(9600);
@@ -76,6 +81,24 @@ void loop() {
 
 }
 
+
+// Función para cifrar un mensaje utilizando el cifrado César
+void cifrarMensaje(char *mensaje, int desplazamiento) {
+  while (*mensaje) {
+    char caracter = *mensaje;
+
+    if (isAlpha(caracter)) {
+      char nuevoCaracter = (((tolower(caracter) - 'a' + desplazamiento) % 26) + 26) % 26 + 'a';
+      *mensaje = isupper(caracter) ? toupper(nuevoCaracter) : nuevoCaracter;
+    }
+    mensaje++;
+  }
+}
+
+// Función para descifrar un mensaje utilizando el cifrado César
+void descifrarMensaje(char *mensajeCifrado, int desplazamiento) {
+  cifrarMensaje(mensajeCifrado, -desplazamiento);
+}
 
 String listaDoublesToString(double vReal[], int size) {
   String result = "[";
@@ -200,7 +223,7 @@ void clean_buffers() {
 void getSensorsData(){
   // TODO : Convert the realVal to a string "microphone:[145, 82, 12, 23]"
   String result = listaDoublesToString(vReal, SAMPLES);
-  Serial.print("rotateX:"+ String(valX) + "rotateY:" + String(valY) + "distance:" +String(distance) + "mircophone:" + result );
+  Serial.print("rotateX:"+ String(valX) + "rotateY:" + String(valY) + "distance:" +String(distance) + "micropData:" + result );
   
 }
 
@@ -352,6 +375,7 @@ void splitCommand(const char *command, char *instruction, int &value) {
 
   // Verificar si se encontró el token
   if (token != NULL) {
+    descifrarMensaje(token,decypt_key);
     // Copiar la primera parte (instrucción) a la variable correspondiente
     strcpy(instruction, token);
 

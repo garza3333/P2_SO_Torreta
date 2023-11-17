@@ -1,0 +1,39 @@
+void ecript_test(){
+
+  char message1[] = "rotateX";
+  Serial.println(message1);
+  cifrarMensaje(message1, decypt_key);
+  Serial.println(message1);
+  descifrarMensaje(message1, decypt_key);
+  Serial.println(message1);
+
+  char message2[] = "rotateY";
+  Serial.println(message2);
+  cifrarMensaje(message2, decypt_key);
+  Serial.println(message2);
+  descifrarMensaje(message2, decypt_key);
+  Serial.println(message2);
+
+  char message3[] = "shooter";
+  Serial.println(message3);
+  cifrarMensaje(message3, decypt_key);
+  Serial.println(message3);
+  descifrarMensaje(message3, decypt_key);
+  Serial.println(message3);
+
+  char message4[] = "reseter";
+  Serial.println(message4);
+  cifrarMensaje(message4, decypt_key);
+  Serial.println(message4);
+  descifrarMensaje(message4, decypt_key);
+  Serial.println(message4);
+
+  char message5[] = "getSenD";
+  Serial.println(message5);
+  cifrarMensaje(message5, decypt_key);
+  Serial.println(message5);
+  descifrarMensaje(message5, decypt_key);
+  Serial.println(message5);
+
+
+}
