@@ -29,16 +29,16 @@ float moveDelay=100;
 
 int audioRecordIndex; // moverse en el buffer de audio
 
-int b_av_size = 20; // maximo de 20 acciones 
+const int b_av_size = 20; // maximo de 20 acciones 
 
 
-String action_buffer[b_av_size]; // buffer de acciones
+char action_buffer[b_av_size][7]; // buffer de acciones
 int b_a_index = 0;
 
 int value_buffer[b_av_size]; // buffer to store instructions values
 int b_v_index = 0; // current value buffer position
 
-char current_inst[15]; // Tamaño de la instruccion
+char current_inst[7]; // Tamaño de la instruccion
 int current_val;
 
 bool inaction = false;  // flag de control de accion de la torreta
@@ -62,7 +62,7 @@ void loop() {
   //recordAudio(vReal);
   if (Serial.available() > 0) {
     char command = Serial.read();
-    // Llamar a la función para dividir el comando
+    // Llamar a la función para dividir el comando rotate : 120
     splitCommand(command, current_inst, current_val);
 
     do_action(current_inst, current_val);
@@ -90,12 +90,12 @@ void update_values(int x, int y, bool a){
 
 }
 
-void add_action(char act, int val){
+void add_action(char act[7], int val){
 
-  action_buffer[b_a_index] = act;
-  value_buffer[b_v_index] = val;
+  if (b_a_index < b_av_size) {
+    strncpy(action_buffer[b_a_index], act, 7); // Copiar el contenido de 'act' a 'action_buffer'
+    value_buffer[b_v_index] = val;
 
-  if(b_a_index < 20){
     b_a_index++;
     b_v_index++;
   }
@@ -103,37 +103,35 @@ void add_action(char act, int val){
 
 }
 
-void do_action(char inst, int val){
+void do_action(const char inst[7], int val) {
 
-  action_buffer[b_a_index] = "N";
-  value_buffer[b_v_index] = 0;
+  if (b_a_index < b_av_size) {
+    strcpy(action_buffer[b_a_index], "nonins");
+    value_buffer[b_v_index] = 0;
 
-  handleCommand(current_inst, current_val);
+    handleCommand(current_inst, current_val);
 
-  if(b_a_index > 0){
-    b_a_index--;
-    b_v_index--;
+    if (b_a_index > 0) {
+      b_a_index--;
+      b_v_index--;
+    }
+
+    // Actualiza el comando actual y el valor
+    strcpy(current_inst, action_buffer[b_a_index]);
+    current_val = value_buffer[b_v_index];
   }
-
-  // update current inst and value
-
-  current_inst = action_buffer[b_a_index];
-  current_val = value_buffer[b_v_index];
-  
 }
 
-void clean_buffers(){
-
+void clean_buffers() {
   // Reseteando el buffer de acciones
   for (int i = 0; i < b_av_size; i++) {
-    action_buffer[i] = 'N';
+    strcpy(action_buffer[i], "nonins");
   }
 
   // Reseteando el buffer de valores
   for (int i = 0; i < b_av_size; i++) {
     value_buffer[i] = 0;
   }
-
 }
 
 void handleCommand(char command, int val) {
@@ -159,21 +157,21 @@ void handleCommand(char command, int val) {
 
     case 'rotateX':
       rotateX(val);
-      break
+      break;
 
     case 'rotateY':
       rotateY(val);
-      break
+      break;
 
   }
 }
 
 void resetServo(){
   valX=100;
-  rotateX();
+  rotateX(100);
   delay(500);
   valY=100;
-  rotateY();
+  rotateY(100);
 }
 
 void shoot(){ 
