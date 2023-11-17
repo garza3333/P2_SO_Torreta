@@ -9,6 +9,11 @@
 #define SAMPLES 1024  // Número de muestras para la FFT
 #define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
 
+#define MAX_COMMAND_LENGTH 50 // Define la longitud máxima del comando
+
+char receivedChars[MAX_COMMAND_LENGTH]; // Almacena el string recibido
+boolean newData = false;
+
 arduinoFFT FFT;
 
 Servo xServo;  // create servo object to control a servo
@@ -59,31 +64,56 @@ void loop() {
   double vReal[SAMPLES]; // Variables para el uso del micro
   double vImag[SAMPLES];
 
-  //recordAudio(vReal);
-  if (Serial.available() > 0) {
-    char command = Serial.read();
-    // Llamar a la función para dividir el comando rotate : 120
-    splitCommand(command, current_inst, current_val);
-    
-    add_action(current_inst,current_val);
-
-    do_action(current_inst, current_val);
-    
-  }
-
+  recvWithEndMarker();
+  showNewData();
 
   printDistance();
 
-  
-
-  // Imprimir los resultados
-  Serial.print("Instruction: ");
-  Serial.println(current_inst);
-  Serial.print("Value: ");
-  Serial.println(current_val);
+  delay(1000);
 
 }
 
+
+
+void recvWithEndMarker() {
+  static byte ndx = 0;
+  char endMarker = '\n'; // Carácter de final de línea ('\n')
+  char rc;
+
+  while (Serial.available() > 0 && newData == false) {
+    rc = Serial.read();
+
+    if (rc != endMarker) {
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= MAX_COMMAND_LENGTH) {
+        ndx = MAX_COMMAND_LENGTH - 1;
+      }
+    } else {
+      receivedChars[ndx] = '\0'; // Agrega el carácter nulo al final del string
+      ndx = 0;
+      newData = true;
+    }
+  }
+}
+
+void showNewData() {
+  if (newData == true) {
+    
+    splitCommand(receivedChars, current_inst, current_val);
+
+    Serial.println(receivedChars);
+    Serial.print("Instruction: ");
+    Serial.println(current_inst);
+    Serial.print("Value: ");
+    Serial.println(current_val);
+
+    add_action(current_inst, current_val);
+    do_action(current_inst, current_val);
+
+    newData = false;
+  }
+}
 
 void update_values(int x, int y, bool a){
     inaction = a;
@@ -94,7 +124,10 @@ void update_values(int x, int y, bool a){
 
 void add_action(char act[7], int val){
 
+  Serial.print("addaction\n");
   if (b_a_index < b_av_size) {
+    Serial.print(b_a_index);
+    Serial.print(b_av_size);
     strncpy(action_buffer[b_a_index], act, 7); // Copiar el contenido de 'act' a 'action_buffer'
     value_buffer[b_v_index] = val;
 
@@ -107,21 +140,28 @@ void add_action(char act[7], int val){
 
 void do_action(const char inst[7], int val) {
 
-  if (b_a_index < b_av_size) {
-    strcpy(action_buffer[b_a_index], "nonins");
-    value_buffer[b_v_index] = 0;
+  Serial.print("doaction\n");
+  if (b_a_index > 0) {
 
-    handleCommand(current_inst, current_val);
-
-    if (b_a_index > 0) {
       b_a_index--;
       b_v_index--;
+
     }
+
+
+  if (b_a_index < b_av_size) {
+    
+    Serial.print("excecute\n");
+    handleCommand(current_inst, current_val);
+
+    strcpy(action_buffer[b_a_index], "nonins");
+    value_buffer[b_v_index] = 0;
 
     // Actualiza el comando actual y el valor
     strcpy(current_inst, action_buffer[b_a_index]);
     current_val = value_buffer[b_v_index];
   }
+
 }
 
 void clean_buffers() {
@@ -140,52 +180,41 @@ void getSensorsData(){
   
 }
 
+void handleCommand(char command[7], int val) {
 
-void handleCommand(char command, int val) {
-  switch (command) {
-    case 'd':
-      valX += speedX;
-      break;
-    case 'a': 
-      valX -= speedX;
-      break;
-    case 'w':
-      valY += speedX2;
-      break;
-    case 's': 
-      valY -= speedX2;
-      break;
-    case 'r': 
+  // Ejemplo de comparación con un string literal
+    if (strcmp(command, "rotateX") == 0) {
+
+      rotateX(current_val);
+        
+    } else if (strcmp(command,"rotateY") == 0){
+
+      rotateY(current_val);
+
+    } else if (strcmp(command,"shooter") == 0){
+
+      shoot();
+        
+    } else if (strcmp(command,"reseter") == 0){
+
       resetServo();
-      break;
+        
+    } else if (strcmp(command,"getSenD") == 0){
 
-    case 'x': 
-      shoot();
-      break;
-    case 'shoot': 
-      shoot();
-      break;
-    case 'getSensorsData': 
       getSensorsData();
-      break;
-
-    case 'rotateX':
-      rotateX(val);
-      break;
-
-    case 'rotateY':
-      rotateY(val);
-      break;
-
-  }
+        
+    } else{
+      Serial.println("Comando no reconocido");
+    }
+    
 }
 
 void resetServo(){
   valX=100;
-  rotateX(100);
+  rotateX(0);
   delay(500);
   valY=100;
-  rotateY(100);
+  rotateY(0);
 }
 
 void shoot(){ 
@@ -275,14 +304,25 @@ void rotateY(float angle){
 }
 
 void splitCommand(const char *command, char *instruction, int &value) {
+  // Copiar la cadena original a una variable temporal
   char commandCopy[strlen(command) + 1];
-  strncpy(commandCopy, command, sizeof(commandCopy));
+  strcpy(commandCopy, command);
 
-  char instructionBuffer[20]; // Ajusta el tamaño según tus necesidades
+  // Usar strtok para dividir la cadena usando ':'
+  char *token = strtok(commandCopy, ":");
 
-  // Dividir la cadena usando sscanf
-  if (sscanf(commandCopy, "%[^:]:%d", instructionBuffer, &value) == 2) {
-    strncpy(instruction, instructionBuffer, strlen(instructionBuffer) + 1);
+  // Verificar si se encontró el token
+  if (token != NULL) {
+    // Copiar la primera parte (instrucción) a la variable correspondiente
+    strcpy(instruction, token);
+
+    // Obtener el siguiente token (valor)
+    token = strtok(NULL, ":");
+
+    // Verificar si se encontró el segundo token y convertirlo a un número entero
+    if (token != NULL) {
+      value = atoi(token);
+    }
   }
 }
 
