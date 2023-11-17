@@ -63,17 +63,36 @@ void setup() {
 
 void loop() {
 
-  //recvWithEndMarker();
-  //showNewData();
+  recvWithEndMarker();
+  showNewData();
 
-  printDistance();
+  //printDistance();
 
   //recordAudio(vReal);
 
-  //delay(100);
+  delay(100);
 
 }
 
+
+String listaDoublesToString(double vReal[], int size) {
+  String result = "[";
+
+  for (int i = 0; i < size; ++i) {
+    // Redondear el valor double al entero más cercano
+    int roundedValue = (int)(vReal[i] + 0.5);
+
+    // Convertir el valor redondeado a String y agregarlo a la cadena
+    result += String(roundedValue);
+
+    if (i != size - 1) {
+      result += ", ";
+    }
+  }
+
+  result += "]";
+  return result;
+}
 
 
 void recvWithEndMarker() {
@@ -177,7 +196,9 @@ void clean_buffers() {
   }
 }
 void getSensorsData(){
-  Serial.print("rotX:"+ String(valX) + "rotY:" + String(valY) + "distance:" +String(distance)  );
+  // TODO : Convert the realVal to a string "microphone:[145, 82, 12, 23]"
+  String result = listaDoublesToString(vReal, SAMPLES);
+  Serial.print("rotateX:"+ String(valX) + "rotateY:" + String(valY) + "distance:" +String(distance) + "mircophone:" + result );
   
 }
 
