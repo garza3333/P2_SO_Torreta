@@ -37,7 +37,6 @@ int main(int argc, char** argv){
         warden();
         //protectBees();
         //usleep(round(100/sampleRate));
-        printf("Hola");
         sleep(1);
     }
 
