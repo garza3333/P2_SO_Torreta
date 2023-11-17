@@ -59,7 +59,7 @@ void warden (){
 }
 
 void shoot(){
-    char message = "shoot:0";
+    char message = "shooter:0";
     sendMessage(message);
 }
 
