@@ -8,16 +8,22 @@
 #include <mpi.h>
 
 #define SERIAL_PORT "/dev/ttyUSB0"
-#define PI 3.141592653589793238462643383279502884
-
 
 #define AUDIO_SAMPLES 120
 #define TARGET_DISTANCE 8
 #define WASP_FREQ 440
 #define SHOOT_ERROR_TOLERANCE 0.5
 
-int main(int argc, char** argv){
+void protectBees();
+void warden();
+void shoot();
+char* getSensorData();
+double getFrequency(float audio[AUDIO_SAMPLES]);
+void rotateX(int degrees);
+void rotateY(int degrees);
+void sendMessage(char* message, int length);
 
+int main(int argc, char** argv){
     MPI_Init(&argc, &argv);
 
     int sampleRate = 60;
@@ -25,22 +31,24 @@ int main(int argc, char** argv){
         protectBees();
         usleep(round(1000000/sampleRate));
     }
+
+    MPI_Finalize();
+    return 0;
 }
 
-void protectBees(){    
-    char data[256] = getSensorData();
+void protectBees(){
+    char* data = getSensorData();
     int distance = atoi(strstr(data,"dist:") + strlen("dist:"));
-    char frequency[AUDIO_SAMPLES] = strstr(data,"micropData:") + strlen("micropData:");
+    char* frequency = strstr(data,"micropData:") + strlen("micropData:");
     if(distance <= TARGET_DISTANCE){
         if (abs(getFrequency(frequency) - WASP_FREQ) <= SHOOT_ERROR_TOLERANCE){
             shoot();
-        }else{
+        } else {
             warden();
         }
     } else {
         warden();
     }
-
 }
 
 void warden (){
@@ -51,7 +59,7 @@ void warden (){
         for (size_t j = 0; j <= movesX; j++){
             if(j < (movesX/2) || j > (movesX/2)){
                 rotateX(-30);
-            }else{
+            } else {
                 rotateX(30*(movesX));
             }
         }
@@ -59,19 +67,19 @@ void warden (){
 }
 
 void shoot(){
-    char message = "shooter:0";
-    sendMessage(message);
+    char* message = "shooter:0";
+    sendMessage(message, strlen(message));
 }
 
-char getSensorData(){
-    char message = "getSenD:0";
-    sendMessage(message);
-    
+char* getSensorData(){
+    char message[] = "getSenD:0";
+    sendMessage(message, sizeof(message));
+
     int serial_port = open(SERIAL_PORT, O_RDONLY);
 
     if (serial_port == -1) {
         perror("Error abriendo el puerto serie");
-        return -1;
+        return NULL;
     }
 
     struct termios tty;
@@ -80,14 +88,13 @@ char getSensorData(){
     if (tcgetattr(serial_port, &tty) != 0) {
         perror("Error obteniendo la configuración del puerto serie");
         close(serial_port);
-        return -1;
+        return NULL;
     }
 
     // Configuración del puerto serie
     tty.c_cflag &= ~PARENB;  // Sin paridad
     tty.c_cflag &= ~CSTOPB;  // 1 bit de parada
     tty.c_cflag |= CS8;      // 8 bits de datos
-    //tty.c_cflag &= ~CRTSCTS; // Deshabilita control de flujo de hardware
 
     cfsetospeed(&tty, B9600); // Velocidad de transmisión (en baudios)
     cfsetispeed(&tty, B9600);
@@ -96,19 +103,19 @@ char getSensorData(){
     if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {
         perror("Error configurando el puerto serie");
         close(serial_port);
-        return -1;
+        return NULL;
     }
 
     // Lectura del puerto serie
-    char read_buf[256];
-    memset(&read_buf, '\0', sizeof(read_buf));
+    char* read_buf = (char*)malloc(256);
+    memset(read_buf, '\0', 256);
 
     while (1) {
-        ssize_t num_bytes = read(serial_port, &read_buf, sizeof(read_buf));
-        
+        ssize_t num_bytes = read(serial_port, read_buf, 256);
+
         if (num_bytes > 1) {
             printf("Mensaje recibido: %s", read_buf);
-            memset(&read_buf, '\0', sizeof(read_buf));
+            memset(read_buf, '\0', 256);
             break;
         } else {
             printf("Leyendo del puerto serie...\n");
@@ -122,8 +129,7 @@ char getSensorData(){
     return read_buf;
 }
 
-int getFrequency(float audio[AUDIO_SAMPLES]){
-
+double getFrequency(float audio[AUDIO_SAMPLES]){
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -138,6 +144,7 @@ int getFrequency(float audio[AUDIO_SAMPLES]){
     // Divide el vector entre los procesos
     int local_elements = AUDIO_SAMPLES / size;
     double* local_in = (double*) malloc(local_elements * sizeof(double));
+    // Trocea un mensaje en partes iguales y los envía individualmente al resto de procesos y a sí mismo
     MPI_Scatter(in, local_elements, MPI_DOUBLE, local_in, local_elements, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // Configura la transformada de Fourier
@@ -163,27 +170,30 @@ int getFrequency(float audio[AUDIO_SAMPLES]){
     free(local_in);
 
     MPI_Finalize();
+
+    return 0.0;  // Ajusta el tipo de retorno según sea necesario
 }
 
 void rotateX(int degrees){
-    char message = "rotateX:" + degrees;
-    sendMessage(message);
+    char message[20];
+    snprintf(message, sizeof(message), "rotateX:%d", degrees);
+    sendMessage(message, strlen(message));
 }
 
 void rotateY(int degrees){
-    char message = "rotateY:" + degrees;
-    sendMessage(message);
-
+    char message[20];
+    snprintf(message, sizeof(message), "rotateY:%d", degrees);
+    sendMessage(message, strlen(message));
 }
 
-void sendMessage(char message){
+void sendMessage(char* message, int length){
     int fd = open(SERIAL_PORT, O_WRONLY); // Abre el dispositivo en modo escritura
 
     if (fd == -1) {
         perror("Error al abrir el puerto serie");
-        return 1;
+        exit(1);
     }
 
-    write(fd, message, strlen(message)); // Escribe el mensaje en el puerto serie
+    write(fd, message, length); // Escribe el mensaje en el puerto serie
     close(fd); // Cierra el puerto serie
 }
