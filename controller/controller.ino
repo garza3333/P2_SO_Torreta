@@ -64,7 +64,7 @@ void loop() {
     char command = Serial.read();
     // Llamar a la función para dividir el comando rotate : 120
     splitCommand(command, current_inst, current_val);
-
+    
     do_action(current_inst, current_val);
     
   }
@@ -261,27 +261,17 @@ void rotateY(float angle){
 }
 
 void splitCommand(const char *command, char *instruction, int &value) {
-  // Copiar la cadena original a una variable temporal
   char commandCopy[strlen(command) + 1];
-  strcpy(commandCopy, command);
+  strncpy(commandCopy, command, sizeof(commandCopy));
 
-  // Usar strtok para dividir la cadena usando ':'
-  char *token = strtok(commandCopy, ":");
+  char instructionBuffer[20]; // Ajusta el tamaño según tus necesidades
 
-  // Verificar si se encontró el token
-  if (token != NULL) {
-    // Copiar la primera parte (instrucción) a la variable correspondiente
-    strcpy(instruction, token);
-
-    // Obtener el siguiente token (valor)
-    token = strtok(NULL, ":");
-
-    // Verificar si se encontró el segundo token y convertirlo a un número entero
-    if (token != NULL) {
-      value = atoi(token);
-    }
+  // Dividir la cadena usando sscanf
+  if (sscanf(commandCopy, "%[^:]:%d", instructionBuffer, &value) == 2) {
+    strncpy(instruction, instructionBuffer, strlen(instructionBuffer) + 1);
   }
 }
+
 
 
 
