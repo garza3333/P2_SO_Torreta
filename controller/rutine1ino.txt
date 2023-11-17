@@ -1,0 +1,90 @@
+void rutine1_normal(){
+
+    // mitad delantera
+    for(int i = 0; i<front_limit; i++){
+      valX += speedX;
+      rotateX();
+      delay(moveDelay);
+    }
+
+    // derecha
+    for(int i = 0; i<left_right_limit; i++){
+      valY += speedX2;
+      rotateY();
+      delay(moveDelay);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      valY -= speedX2;
+      rotateY();
+      delay(moveDelay);
+    }
+
+    // izquierda
+    for(int i = 0; i<left_right_limit; i++){
+      valY -= speedX2;
+      rotateY();
+      delay(moveDelay);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      valY += speedX2;
+      rotateY();
+      delay(moveDelay);
+    }
+
+    // atras centro
+    for(int i = 0; i<front_limit; i++){
+      valX -= speedX;
+      rotateX();
+      delay(moveDelay);
+    }
+
+    // atras atras
+    for(int i = 0; i<front_limit; i++){
+      valX -= speedX;
+      rotateX();
+      delay(100);
+    }
+
+
+// derecha
+    for(int i = 0; i<left_right_limit; i++){
+      valY += speedX2;
+      rotateY();
+      delay(100);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      valY -= speedX2;
+      rotateY();
+      delay(100);
+    }
+
+    // izquierda
+    for(int i = 0; i<left_right_limit; i++){
+      valY -= speedX2;
+      rotateY();
+      delay(100);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      valY += speedX2;
+      rotateY();
+      delay(100);
+    }
+
+
+    // segunda mitad delantera
+    for(int i = 0; i<front_limit; i++){
+      valX += speedX;
+      rotateX();
+      delay(100);
+    }
+
+
+}

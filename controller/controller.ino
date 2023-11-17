@@ -8,29 +8,53 @@
 #define SOUND_EFFECT_PIN 4
 #define SAMPLES 1024  // Número de muestras para la FFT
 #define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
+
 arduinoFFT FFT;
+
 Servo xServo;  // create servo object to control a servo
 Servo yServo;  // create servo object to control a servo
 int xAxisPot = A0; // servo 1
 int yAxisPot = A1; // servo 2
-int valX; 
-int valY; 
 
-int front_limit = 11;
-int back_limit = 8;
-int left_right_limit = 10;
+int valX; // posición servo 1
+int valY; // posición servo 2
 
-float speedX=5;
-float speedX2=10;
+int front_limit = 11; // maxima cantidad de giros de servomotor 1 hacia adelante
+int back_limit = 8; // maxima cantidad de giros de servomotor 1 hacia atras
+int left_right_limit = 10; // maxima cantidad de giros del servomotor 2 hacia izquierda y derecha
+
+float speedX=5; // Velocidad servomotor 1: Up Ddown
+float speedX2=10; // Velocidad servo motor 2: Left Rright
 float moveDelay=100;
 
-int audioRecordIndex;
+int audioRecordIndex; // moverse en el buffer de audio
+
+int b_av_size = 20; // maximo de 20 acciones 
+
+
+String action_buffer[b_av_size]; // buffer de acciones
+int b_a_index = 0;
+
+int value_buffer[b_av_size]; // buffer to store instructions values
+int b_v_index = 0; // current value buffer position
+
+char current_inst[6]; // Tamaño de la instruccion
+int current_val;
+
+bool inaction = false;  // flag de control de accion de la torreta
+
 
 void setup() {
     Serial.begin(9600);
     xServo.attach(SERVO_X);  
     yServo.attach(SERVO_Y);  
     resetServo();
+
+    // Reseteando el buffer de acciones
+    for (int i = 0; i < b_av_size; i++) {
+      action_buffer[i] = 'N';
+    }
+
 }
 
 void loop() {
@@ -39,26 +63,65 @@ void loop() {
   double vImag[SAMPLES];
 
   //recordAudio(vReal);
-
-  
   if (Serial.available() > 0) {
     char command = Serial.read();
-    handleCommand(command);
+    // Llamar a la función para dividir el comando
+    splitCommand(command, current_inst, current_val);
+
+    //handleCommand(command);
   }
+
+
+  printDistance();
 
   
 
-  //rutine1_normal();
-  //shoot();
-
-  printDistance();
+  // Imprimir los resultados
+  Serial.print("Instruction: ");
+  Serial.println(current_inst);
+  Serial.print("Value: ");
+  Serial.println(current_val);
 
 }
 
 
+void update_values(int x, int y, bool a){
+    inaction = a;
+    valX = x;
+    valY = y;
 
+}
 
-void handleCommand(char command) {
+void add_action(char act, int val){
+
+  action_buffer[b_a_index] = act;
+
+  if(b_a_index < 20){
+    b_a_index++;
+  }
+  
+
+}
+
+void do_action(char inst, int val){
+
+  
+  if(b_a_index > 0){
+    b_a_index--;
+  }
+  
+}
+
+void restart_buffer_action(){
+
+  // Reseteando el buffer de acciones
+  for (int i = 0; i < b_av_size; i++) {
+    action_buffer[i] = 'N';
+  }
+
+}
+
+void handleCommand(char command, int val) {
   switch (command) {
     case 'D':
       valX += speedX;
@@ -126,98 +189,6 @@ void printDistance() {
 }
 
 
-void rutine1_normal(){
-
-    // mitad delantera
-    for(int i = 0; i<front_limit; i++){
-      valX += speedX;
-      rotateX();
-      delay(moveDelay);
-    }
-
-    // derecha
-    for(int i = 0; i<left_right_limit; i++){
-      valY += speedX2;
-      rotateY();
-      delay(moveDelay);
-    }
-
-    // centro
-    for(int i = 0; i<left_right_limit; i++){
-      valY -= speedX2;
-      rotateY();
-      delay(moveDelay);
-    }
-
-    // izquierda
-    for(int i = 0; i<left_right_limit; i++){
-      valY -= speedX2;
-      rotateY();
-      delay(moveDelay);
-    }
-
-    // centro
-    for(int i = 0; i<left_right_limit; i++){
-      valY += speedX2;
-      rotateY();
-      delay(moveDelay);
-    }
-
-    // atras centro
-    for(int i = 0; i<front_limit; i++){
-      valX -= speedX;
-      rotateX();
-      delay(moveDelay);
-    }
-
-    // atras atras
-    for(int i = 0; i<front_limit; i++){
-      valX -= speedX;
-      rotateX();
-      delay(100);
-    }
-
-
-// derecha
-    for(int i = 0; i<left_right_limit; i++){
-      valY += speedX2;
-      rotateY();
-      delay(100);
-    }
-
-    // centro
-    for(int i = 0; i<left_right_limit; i++){
-      valY -= speedX2;
-      rotateY();
-      delay(100);
-    }
-
-    // izquierda
-    for(int i = 0; i<left_right_limit; i++){
-      valY -= speedX2;
-      rotateY();
-      delay(100);
-    }
-
-    // centro
-    for(int i = 0; i<left_right_limit; i++){
-      valY += speedX2;
-      rotateY();
-      delay(100);
-    }
-
-
-    // segunda mitad delantera
-    for(int i = 0; i<front_limit; i++){
-      valX += speedX;
-      rotateX();
-      delay(100);
-    }
-
-
-}
-
-
 void recordAudio(double* vReal) {
   
     vReal[audioRecordIndex] = analogRead(A0);
@@ -228,7 +199,6 @@ void recordAudio(double* vReal) {
     }
   
 }
-
 
 
 void shootSoundEffect(){
@@ -264,6 +234,30 @@ void rotateX(){
 void rotateY(){
   yServo.write(valY);                 
   moveSoundEffect();
+}
+
+
+void splitCommand(const char *command, char *instruction, int &value) {
+  // Copiar la cadena original a una variable temporal
+  char commandCopy[strlen(command) + 1];
+  strcpy(commandCopy, command);
+
+  // Usar strtok para dividir la cadena usando ':'
+  char *token = strtok(commandCopy, ":");
+
+  // Verificar si se encontró el token
+  if (token != NULL) {
+    // Copiar la primera parte (instrucción) a la variable correspondiente
+    strcpy(instruction, token);
+
+    // Obtener el siguiente token (valor)
+    token = strtok(NULL, ":");
+
+    // Verificar si se encontró el segundo token y convertirlo a un número entero
+    if (token != NULL) {
+      value = atoi(token);
+    }
+  }
 }
 
 
