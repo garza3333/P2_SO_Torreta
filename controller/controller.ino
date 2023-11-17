@@ -1,4 +1,3 @@
-#include <arduinoFFT.h>
 #include <Servo.h>
 #define SERVO_Y 10
 #define SERVO_X 9
@@ -8,13 +7,13 @@
 #define SOUND_EFFECT_PIN 4
 #define SAMPLES 100  // Número de muestras para la FFT
 #define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
-
+#include <SoftwareSerial.h>
 #define MAX_COMMAND_LENGTH 50 // Define la longitud máxima del comando
 
 char receivedChars[MAX_COMMAND_LENGTH]; // Almacena el string recibido
 boolean newData = false;
 
-arduinoFFT FFT;
+// arduinoFFT FFT;
 
 Servo xServo;  // create servo object to control a servo
 Servo yServo;  // create servo object to control a servo
@@ -37,6 +36,7 @@ int distance;
 
 char action_buffer[b_av_size][7]; // buffer de acciones
 int b_a_index = 0;
+int realValIndex = 0;
 
 int value_buffer[b_av_size]; // buffer to store instructions values
 int b_v_index = 0; // current value buffer position
@@ -56,6 +56,8 @@ void setup() {
     yServo.attach(SERVO_Y);  
     pinMode(TRIGGER_PIN,OUTPUT);
     pinMode(ECHO_PIN,INPUT);
+    pinMode(ECHO_PIN,INPUT);
+
     resetServo();
     clean_buffers();
 
@@ -66,9 +68,9 @@ void loop() {
   recvWithEndMarker();
   showNewData();
 
-  //printDistance();
+  printDistance();
 
-  //recordAudio(vReal);
+  recordAudio();
 
   delay(100);
 
@@ -267,28 +269,38 @@ void printDistance() {
   distance = duration * 0.034 / 2; // La velocidad del sonido en el aire es de aproximadamente 0.034 cm/microsegundo
 
   // Mostrar la distancia en el puerto serie
-  Serial.print("Distancia:");
-  Serial.print(distance);
-  Serial.println("");
+  // Serial.print("Distancia:");
+  // Serial.print(distance);
+  // Serial.println("");
 
-  delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
+  // delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
 }
 
 
-void recordAudio(double* vReal) {
-  
-    vReal[audioRecordIndex] = analogRead(A0);
+void recordAudio(){
 
-    Serial.print("vReal:");
-    Serial.println(vReal[audioRecordIndex]);
+  int mn = 1024;
+  int mx = 0;
 
-    audioRecordIndex+=1;
-    if(audioRecordIndex>= SAMPLES)
-    {
-      audioRecordIndex=0;
-    }
+  for (int i = 0; i < 100; ++i) {
+
+    int val = analogRead(A0);
     
-  
+    mn = min(mn, val);
+    mx = max(mx, val);
+  }
+
+  int delta = mx - mn;
+
+  vReal[realValIndex] = delta;
+  realValIndex++;
+  if(realValIndex > 49){
+    realValIndex = 0;
+  }
+
+  // Serial.print("Delta:");
+  // Serial.println(delta);
+
 }
 
 
