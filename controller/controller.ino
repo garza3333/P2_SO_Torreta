@@ -135,6 +135,11 @@ void clean_buffers(){
   }
 
 }
+void getSensorsData(){
+  Serial.print("rotX:"+ String(valX) + "rotY:" + String(valY) + "distance:" +String(distance)  );
+  
+}
+
 
 void handleCommand(char command, int val) {
   switch (command) {
@@ -155,6 +160,13 @@ void handleCommand(char command, int val) {
       break;
     case 'X': 
       shoot();
+      break;
+      break;
+    case 'shoot': 
+      shoot();
+      break;
+    case 'getSensorsData': 
+      getSensorsData();
       break;
 
     case 'rotateX':
@@ -185,10 +197,10 @@ void shoot(){
   digitalWrite(LASER_PIN,LOW);
   delay(1000);
 }
-
+int distance;
 void printDistance() {
   long duration;
-  int distance;
+  
 
   // Generar un pulso ultrasónico para medir la distancia
   digitalWrite(TRIGGER_PIN, LOW);
