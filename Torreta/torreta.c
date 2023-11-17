@@ -14,6 +14,10 @@
 #define WASP_FREQ 440
 #define SHOOT_ERROR_TOLERANCE 0.5
 
+int front_limit = 11; // maxima cantidad de giros de servomotor 1 hacia adelante
+int back_limit = 8; // maxima cantidad de giros de servomotor 1 hacia atras
+int left_right_limit = 10; // maxima cantidad de giros del servomotor 2 hacia izquierda y derecha
+
 void protectBees();
 void warden();
 void shoot();
@@ -24,12 +28,17 @@ void rotateY(int degrees);
 void sendMessage(char* message, int length);
 
 int main(int argc, char** argv){
+    
     MPI_Init(&argc, &argv);
 
     int sampleRate = 60;
+    sendMessage("reseter:0", 10);
     while(1){
-        protectBees();
-        usleep(round(1000000/sampleRate));
+        warden();
+        //protectBees();
+        //usleep(round(100/sampleRate));
+        printf("Hola");
+        sleep(1);
     }
 
     MPI_Finalize();
@@ -37,6 +46,7 @@ int main(int argc, char** argv){
 }
 
 void protectBees(){
+    //sendMessage("rotateX:10", 10);
     char* data = getSensorData();
     int distance = atoi(strstr(data,"dist:") + strlen("dist:"));
     char* frequency = strstr(data,"micropData:") + strlen("micropData:");
@@ -52,6 +62,8 @@ void protectBees(){
 }
 
 void warden (){
+    rutine1_normal();
+    /*
     int movesY = 5;
     int movesX = 6;
     for (size_t i = 0; i < movesY; i++){
@@ -63,7 +75,7 @@ void warden (){
                 rotateX(30*(movesX));
             }
         }
-    }
+    }*/
 }
 
 void shoot(){
@@ -178,22 +190,128 @@ void rotateX(int degrees){
     char message[20];
     snprintf(message, sizeof(message), "rotateX:%d", degrees);
     sendMessage(message, strlen(message));
+    //usleep(500);
 }
 
 void rotateY(int degrees){
     char message[20];
     snprintf(message, sizeof(message), "rotateY:%d", degrees);
     sendMessage(message, strlen(message));
+    //usleep(500);
 }
 
 void sendMessage(char* message, int length){
-    int fd = open(SERIAL_PORT, O_WRONLY); // Abre el dispositivo en modo escritura
+    const char *devicePath = "/dev/ttyUSB0"; // Ajusta el nombre del dispositivo según tu configuración
+    int fd = open(devicePath, O_WRONLY); // Abre el dispositivo en modo escritura
 
     if (fd == -1) {
         perror("Error al abrir el puerto serie");
-        exit(1);
+        return 1;
+    }
+;
+    size_t mensaje_len = strlen(message);
+    
+    // Crear un nuevo mensaje que incluya '\n' al final
+    char mensaje_con_salto_de_linea[mensaje_len + 2]; 
+    snprintf(mensaje_con_salto_de_linea, sizeof(mensaje_con_salto_de_linea), "%s\n", message);
+
+    write(fd, mensaje_con_salto_de_linea, strlen(mensaje_con_salto_de_linea)); // Escribe el mensaje en el puerto serie
+    close(fd); // Cierra el puerto serie
+
+    sleep(1);
+}
+
+void rutine1_normal(){
+    int velocidadX = 40;
+    int velocidadY = 10;
+
+    rotateX(velocidadX);
+    rotateX(velocidadX);
+
+    rotateX(-velocidadX);
+    rotateX(-velocidadX);
+
+    rotateX(-velocidadX);
+    rotateX(-velocidadX);
+
+    rotateY(-velocidadY);
+
+    rotateX(velocidadX);
+    rotateX(velocidadX);
+
+    rotateX(velocidadX);
+    rotateX(velocidadX);
+
+    rotateX(-velocidadX);
+    rotateX(-velocidadX);
+
+    rotateX(-velocidadX);
+    rotateX(-velocidadX);
+
+    rotateY(velocidadY);
+
+    rotateX(velocidadX);
+    rotateX(velocidadX);
+
+    return;
+    // mitad delantera
+    for(int i = 0; i<front_limit; i++){
+      rotateX(velocidadX);
     }
 
-    write(fd, message, length); // Escribe el mensaje en el puerto serie
-    close(fd); // Cierra el puerto serie
+    // derecha
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // izquierda
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){      
+      rotateY(velocidadY);
+    }
+
+    // atras centro
+    for(int i = 0; i<front_limit; i++){
+      rotateX(velocidadX);
+    }
+
+    // atras atras
+    for(int i = 0; i<front_limit; i++){
+      rotateX(velocidadX);
+    }
+
+
+// derecha
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // izquierda
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // centro
+    for(int i = 0; i<left_right_limit; i++){
+      rotateY(velocidadY);
+    }
+
+    // segunda mitad delantera
+    for(int i = 0; i<front_limit; i++){
+      rotateX(velocidadX);
+    }
 }
