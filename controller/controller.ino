@@ -6,7 +6,7 @@
 #define ECHO_PIN 7
 #define TRIGGER_PIN 6
 #define SOUND_EFFECT_PIN 4
-#define SAMPLES 1024  // Número de muestras para la FFT
+#define SAMPLES 100  // Número de muestras para la FFT
 #define SAMPLING_FREQUENCY 10000  // Frecuencia de muestreo en Hz
 
 #define MAX_COMMAND_LENGTH 50 // Define la longitud máxima del comando
@@ -18,8 +18,6 @@ arduinoFFT FFT;
 
 Servo xServo;  // create servo object to control a servo
 Servo yServo;  // create servo object to control a servo
-int xAxisPot = A0; // servo 1
-int yAxisPot = A1; // servo 2
 
 int valX; // posición servo 1
 int valY; // posición servo 2
@@ -48,12 +46,16 @@ int current_val;
 
 bool inaction = false;  // flag de control de accion de la torreta
 
+double vReal[SAMPLES]; // Variables para el uso del micro
+double vImag[SAMPLES]; // 
 
 void setup() {
 
     Serial.begin(9600);
     xServo.attach(SERVO_X);  
     yServo.attach(SERVO_Y);  
+    pinMode(TRIGGER_PIN,OUTPUT);
+    pinMode(ECHO_PIN,INPUT);
     resetServo();
     clean_buffers();
 
@@ -61,15 +63,14 @@ void setup() {
 
 void loop() {
 
-  double vReal[SAMPLES]; // Variables para el uso del micro
-  double vImag[SAMPLES];
-
-  recvWithEndMarker();
-  showNewData();
+  //recvWithEndMarker();
+  //showNewData();
 
   printDistance();
 
-  delay(1000);
+  //recordAudio(vReal);
+
+  //delay(100);
 
 }
 
@@ -102,11 +103,11 @@ void showNewData() {
     
     splitCommand(receivedChars, current_inst, current_val);
 
-    Serial.println(receivedChars);
-    Serial.print("Instruction: ");
-    Serial.println(current_inst);
-    Serial.print("Value: ");
-    Serial.println(current_val);
+    // Serial.println(receivedChars);
+    // Serial.print("Instruction: ");
+    // Serial.println(current_inst);
+    // Serial.print("Value: ");
+    // Serial.println(current_val);
 
     add_action(current_inst, current_val);
     do_action(current_inst, current_val);
@@ -124,10 +125,10 @@ void update_values(int x, int y, bool a){
 
 void add_action(char act[7], int val){
 
-  Serial.print("addaction\n");
+  //Serial.print("addaction\n");
   if (b_a_index < b_av_size) {
-    Serial.print(b_a_index);
-    Serial.print(b_av_size);
+    //Serial.print(b_a_index);
+    //Serial.print(b_av_size);
     strncpy(action_buffer[b_a_index], act, 7); // Copiar el contenido de 'act' a 'action_buffer'
     value_buffer[b_v_index] = val;
 
@@ -140,7 +141,7 @@ void add_action(char act[7], int val){
 
 void do_action(const char inst[7], int val) {
 
-  Serial.print("doaction\n");
+  //Serial.print("doaction\n");
   if (b_a_index > 0) {
 
       b_a_index--;
@@ -151,7 +152,7 @@ void do_action(const char inst[7], int val) {
 
   if (b_a_index < b_av_size) {
     
-    Serial.print("excecute\n");
+    //Serial.print("excecute\n");
     handleCommand(current_inst, current_val);
 
     strcpy(action_buffer[b_a_index], "nonins");
@@ -206,7 +207,7 @@ void handleCommand(char command[7], int val) {
     } else{
       Serial.println("Comando no reconocido");
     }
-    
+
 }
 
 void resetServo(){
@@ -219,7 +220,7 @@ void resetServo(){
 
 void shoot(){ 
 
-  Serial.println("shoot");
+  //Serial.println("shoot");
   digitalWrite(LASER_PIN,HIGH);
   shootSoundEffect();
   delay(1000);
@@ -233,9 +234,9 @@ void printDistance() {
 
   // Generar un pulso ultrasónico para medir la distancia
   digitalWrite(TRIGGER_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
   delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(20);
   digitalWrite(TRIGGER_PIN, LOW);
 
   // Medir el tiempo de ida y vuelta del eco
@@ -249,18 +250,23 @@ void printDistance() {
   Serial.print(distance);
   Serial.println("");
 
-  //delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
+  delay(20); // Espera 500 milisegundos antes de realizar la siguiente medición
 }
 
 
 void recordAudio(double* vReal) {
   
     vReal[audioRecordIndex] = analogRead(A0);
+
+    Serial.print("vReal:");
+    Serial.println(vReal[audioRecordIndex]);
+
     audioRecordIndex+=1;
     if(audioRecordIndex>= SAMPLES)
     {
       audioRecordIndex=0;
     }
+    
   
 }
 
@@ -292,7 +298,7 @@ void playTone(int frequency, int duration) {
 
 
 void rotateX(float angle){
-  Serial.println("Rotate");
+  //Serial.println("Rotate");
   valX+=angle;
   xServo.write(valX);  
   moveSoundEffect();               
