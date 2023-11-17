@@ -30,7 +30,7 @@ float moveDelay=100;
 int audioRecordIndex; // moverse en el buffer de audio
 
 const int b_av_size = 20; // maximo de 20 acciones 
-
+int distance;
 
 char action_buffer[b_av_size][7]; // buffer de acciones
 int b_a_index = 0;
@@ -65,6 +65,8 @@ void loop() {
     // Llamar a la función para dividir el comando rotate : 120
     splitCommand(command, current_inst, current_val);
     
+    add_action(current_inst,current_val);
+
     do_action(current_inst, current_val);
     
   }
@@ -133,26 +135,38 @@ void clean_buffers() {
     value_buffer[i] = 0;
   }
 }
+void getSensorsData(){
+  Serial.print("rotX:"+ String(valX) + "rotY:" + String(valY) + "distance:" +String(distance)  );
+  
+}
+
 
 void handleCommand(char command, int val) {
   switch (command) {
-    case 'D':
+    case 'd':
       valX += speedX;
       break;
-    case 'A': 
+    case 'a': 
       valX -= speedX;
       break;
-    case 'W':
+    case 'w':
       valY += speedX2;
       break;
-    case 'S': 
+    case 's': 
       valY -= speedX2;
       break;
-    case 'R': 
+    case 'r': 
       resetServo();
       break;
-    case 'X': 
+
+    case 'x': 
       shoot();
+      break;
+    case 'shoot': 
+      shoot();
+      break;
+    case 'getSensorsData': 
+      getSensorsData();
       break;
 
     case 'rotateX':
@@ -186,7 +200,7 @@ void shoot(){
 
 void printDistance() {
   long duration;
-  int distance;
+  
 
   // Generar un pulso ultrasónico para medir la distancia
   digitalWrite(TRIGGER_PIN, LOW);
